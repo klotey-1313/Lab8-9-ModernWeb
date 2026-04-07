@@ -2,7 +2,7 @@
 ## Secure Insurance Platform with HTTPS, JWT, User Profile Management, and Role-Based API Protection
 
 **Course:** Modern Web Technologies
-**Technology Stack:** Node.js · Express.js · React · Next.js · MongoDB
+**Stack:** Node.js, Express.js, Next.js, React, MongoDB
 
 ---
 
@@ -26,107 +26,72 @@
 
 ## 1. Lab Objective
 
-The objective of this lab is to design and implement a production-grade, secure, full-stack insurance platform that simulates the digital systems used in financial services. The platform must demonstrate:
+The goal of this lab was to build a secure, full-stack insurance platform that demonstrates the kind of security and access control you'd actually find in a real financial services application. The platform needed to cover a few key areas:
 
-- Configuring an Express.js server to operate exclusively over HTTPS using a PFX-based certificate.
-- Issuing and validating JSON Web Tokens as the sole authentication mechanism for all protected operations.
-- Building layered middleware chains that enforce authentication, role-based access control, and record-level ownership in the correct order.
-- Designing a comprehensive two-layer user profile model that serves both external customers and internal staff.
-- Implementing administrator-controlled RBAC so that role assignments are managed through the live application, not configuration files.
-- Integrating a Next.js frontend that enforces role-appropriate navigation and blocks unauthorized screen access.
-- Applying real-world security practices: password hashing, input validation, safe error handling, field-level response filtering, CORS restriction, and security headers.
+- Running the backend exclusively over HTTPS, not just as an option but as the only way to communicate.
+- Using JSON Web Tokens to authenticate users, with the token carrying the user's identity and roles.
+- Protecting every API endpoint with middleware that checks authentication, role, and in some cases record ownership.
+- Building a detailed user profile model that works for both external customers and internal staff.
+- Letting an administrator manage user roles through the live application — no database access, no code changes needed.
+- Building a Next.js frontend that enforces access control on the page level, not just through the API.
+- Applying practical security measures throughout: password hashing, input validation, sanitized error messages, filtered responses.
 
-The system serves two audiences: customers who manage their own insurance products online, and internal staff (agents, underwriters, claims adjusters, customer service representatives, compliance officers, and administrators) who perform operational and governance tasks.
+The platform serves two types of users. On the customer side, people log in to manage their insurance policies, request amendments or coverage reductions, and submit claims. On the internal side, agents create policies, underwriters handle approval workflows, claims adjusters process claims, customer service reps support customers, compliance officers monitor the platform, and administrators manage everything.
 
 ---
 
 ## 2. Architecture Overview
 
-### 2.1 High-Level System Diagram
+The platform is made up of two separate applications that work together. The backend is an Express.js API that runs on port 5001 over HTTPS. The frontend is a Next.js app that runs on port 3000 and communicates with the backend exclusively over HTTPS. MongoDB is used as the database, accessed through Mongoose.
+
+Here's how the pieces connect:
 
 ```
-┌─────────────────────────────────────────────────────┐
-│                   Browser (Client)                   │
-│             Next.js 15 – App Router                 │
-│                                                     │
-│  AuthContext ──► ProtectedRoute ──► RoleGuard       │
-│  api.ts (fetch + Bearer token)                      │
-└────────────────────┬────────────────────────────────┘
-                     │  HTTPS (TLS 1.2+)
-                     ▼
-┌─────────────────────────────────────────────────────┐
-│           Express.js API – Port 5001 (HTTPS)        │
-│                                                     │
-│  helmet  cors  morgan  express-validator            │
-│                                                     │
-│  authenticate ──► authorizeRoles ──► ownership      │
-│                                                     │
-│  /api/auth        /api/profile     /api/policies    │
-│  /api/amendments  /api/reductions  /api/claims      │
-│  /api/admin/users /api/admin/rbac                   │
-│                                                     │
-│  Controllers ──► Services ──► Repositories          │
-└────────────────────┬────────────────────────────────┘
-                     │  Mongoose ODM
-                     ▼
-┌─────────────────────────────────────────────────────┐
-│                    MongoDB                          │
-│  users · roles · policies · amendmentrequests       │
-│  reductionrequests · claims                         │
-└─────────────────────────────────────────────────────┘
+Browser (Next.js frontend)
+        │
+        │  All requests over HTTPS
+        ▼
+Express.js API (port 5001, HTTPS only)
+  │
+  ├── helmet, cors, morgan, express-validator
+  ├── authenticate middleware (JWT check)
+  ├── authorizeRoles middleware (role check)
+  ├── requirePolicyOwnership middleware (ownership check)
+  ├── Route handlers for each module
+  │     /api/auth, /api/profile, /api/policies
+  │     /api/amendments, /api/reductions, /api/claims
+  │     /api/admin/users, /api/admin/rbac
+  └── errorMiddleware (catches everything at the end)
+        │
+        ▼
+     MongoDB
+  users, roles, policies, amendments, reductions, claims
 ```
 
-### 2.2 Backend Layered Architecture
+**Backend layer design:** The backend follows a strict layered pattern. Routes define the HTTP paths and the middleware stack. Controllers handle the request and response — they don't contain any logic, they just call a service and return the result. Services contain all business logic. Repositories handle all database operations using Mongoose — nothing else in the app touches the database directly. This separation keeps the code clean and easy to test.
 
-| Layer | Responsibility |
-|---|---|
-| **Routes** | Declare HTTP verbs, paths, and the middleware stack for each endpoint |
-| **Controllers** | Parse request data; call service; return standardized JSON response |
-| **Services** | All business logic; call repositories for data access; throw `AppError` on failure |
-| **Repositories** | Thin wrappers around Mongoose; no business logic |
-| **Models** | Mongoose schemas with field-level validation and output transforms |
-| **Middleware** | `authenticate`, `authorizeRoles`, `requirePolicyOwnership`, `errorMiddleware`, `handleValidation` |
-| **Validators** | `express-validator` rule arrays; one file per module |
-| **Utils** | `apiResponse`, `appError`, `safeObject`, formatting helpers |
-
-### 2.3 Frontend Layered Architecture
-
-| Layer | Responsibility |
-|---|---|
-| **App pages** | One page component per URL route using the Next.js App Router |
-| **Guards** | `ProtectedRoute` enforces login; `RoleGuard` enforces role access |
-| **Components** | Reusable forms, layout shell, sidebar, feedback, tables |
-| **Context / Hooks** | `AuthContext` + `useAuth` provide global authentication state |
-| **API service** | `apiRequest()` in `lib/api.ts` centralizes HTTPS calls and token attachment |
-| **Types** | TypeScript interfaces mirror all backend response shapes |
+**Frontend layer design:** The frontend uses the Next.js App Router. Pages are protected by two guard components — `ProtectedRoute` handles authentication and `RoleGuard` handles role-based access. All API calls go through a centralized `api.ts` module that automatically attaches the JWT from localStorage to every request. Global authentication state lives in `AuthContext` and is accessed anywhere through the `useAuth` hook.
 
 ---
 
 ## 3. HTTPS Configuration
 
-### 3.1 Certificate Generation
-
-A self-signed PKCS#12 (PFX) certificate is generated using OpenSSL:
+Getting the backend to run over HTTPS requires a certificate. For development, I generated a self-signed one using OpenSSL. The process creates a private key and a certificate, then bundles them into a PFX file which Node.js can load directly.
 
 ```bash
-# Generate 4096-bit RSA key and self-signed certificate
 openssl req -x509 -newkey rsa:4096 -keyout key.pem -out cert.pem \
-  -sha256 -days 365 -nodes -subj "/C=CA/ST=Ontario/L=Toronto/O=NorthStar/CN=localhost"
+  -sha256 -days 365 -nodes -subj "/CN=localhost"
 
-# Bundle into PFX with a passphrase
 openssl pkcs12 -export -out server.pfx \
-  -inkey key.pem -in cert.pem -passout pass:<passphrase>
+  -inkey key.pem -in cert.pem -passout pass:mypassphrase
 ```
 
-The PFX file is stored in `backend-api/cert/` and excluded from version control via `.gitignore`. The passphrase is stored only in the `.env` file, which is also excluded from version control.
+The PFX file goes in `backend-api/cert/` and is excluded from git. The passphrase is stored in `.env`, which is also excluded from version control.
 
-### 3.2 Server Initialization
-
-`src/server.js` creates an HTTPS server — there is no HTTP fallback:
+In `server.js`, the HTTPS server is created like this:
 
 ```javascript
 import https from "https";
-import { getHttpsOptions } from "./config/https.js";
 
 const httpsServer = https.createServer(getHttpsOptions(), app);
 httpsServer.listen(env.port, () => {
@@ -134,59 +99,21 @@ httpsServer.listen(env.port, () => {
 });
 ```
 
-`getHttpsOptions()` reads the PFX file path and passphrase from environment variables:
+There's no `http.createServer()` anywhere. The app only runs over HTTPS. The `getHttpsOptions()` function reads the PFX path and passphrase from environment variables and returns the options object that Node.js needs.
 
-```javascript
-export function getHttpsOptions() {
-  const pfx = fs.readFileSync(path.resolve(projectRoot, env.httpsPfxPath));
-  return { pfx, passphrase: env.httpsPfxPassphrase };
-}
-```
-
-### 3.3 Frontend Configuration
-
-The Next.js frontend communicates with the backend exclusively over HTTPS. The base URL is set in `.env.local`:
-
-```env
-NEXT_PUBLIC_API_BASE_URL=https://localhost:5001/api
-NODE_TLS_REJECT_UNAUTHORIZED=0   # development only
-```
-
-`NODE_TLS_REJECT_UNAUTHORIZED=0` allows the self-signed certificate in the Node.js process during development. This variable is documented as development-only in both the `.env.local.example` and the README.
+On the frontend side, the `.env.local` file sets `NEXT_PUBLIC_API_BASE_URL=https://localhost:5001/api` so all API calls go to HTTPS. Since it's a self-signed cert, `NODE_TLS_REJECT_UNAUTHORIZED=0` is also set in development to prevent Node.js from rejecting it. This setting is clearly marked as development-only in the `.env.local.example` file and the README.
 
 ---
 
 ## 4. Authentication Flow
 
-### 4.1 Login Sequence
+When a user logs in, they send their `username` and `password` to `POST /api/auth/login`. The backend finds the user in MongoDB by username, then uses `bcrypt.compare()` to check the password against the stored hash. If it doesn't match, it returns a `401` immediately.
 
-```
-Client                       Backend
-  │                              │
-  │  POST /api/auth/login        │
-  │  { username, password }      │
-  │ ──────────────────────────► │
-  │                              │  1. userRepository.findByUsername(username)
-  │                              │  2. bcrypt.compare(password, user.passwordHash)
-  │                              │  3. user.lastLoginAt = new Date(); user.save()
-  │                              │  4. tokenService.generateAccessToken(user)
-  │                              │     → jwt.sign({ userId, username, roles }, secret, { expiresIn })
-  │                              │
-  │  200 { token, user }         │
-  │ ◄────────────────────────── │
-  │                              │
-  │  Store token → localStorage  │
-  │  Attach on all future calls  │
-  │  Authorization: Bearer <tok> │
-```
-
-### 4.2 JWT Payload
-
-The token is signed with HS256. The payload contains exactly the claims required by the specification:
+If the credentials are valid, two things happen before the token is issued: the `lastLoginAt` field on the user record is updated to the current time, and then `tokenService.generateAccessToken(user)` is called. That function calls `jwt.sign()` with this payload:
 
 ```json
 {
-  "userId":   "64abc123def456ghi789",
+  "userId":   "64abc123...",
   "username": "customer1",
   "roles":    ["CUSTOMER"],
   "iat":      1712000000,
@@ -194,56 +121,25 @@ The token is signed with HS256. The payload contains exactly the claims required
 }
 ```
 
-Passwords and password hashes are **never** included in the token.
+The token is signed with `HS256` using a secret key from the environment. It expires after 2 hours. Passwords are never in the payload — only identity and role information.
 
-### 4.3 Token Verification
+The token and a sanitized user object are returned to the frontend. The frontend stores the token in `localStorage` and from that point on, every API call includes `Authorization: Bearer <token>` in the header.
 
-The `authenticate` middleware executes on every protected endpoint:
+For subsequent requests, the `authenticate` middleware handles verification. It reads the token from the header, calls `jwt.verify()` which will throw an error if the token is expired or tampered with, and then fetches the full user document from MongoDB using the `userId` from the decoded payload. That database lookup is important — it ensures the user account still exists even if the token is still technically valid. If anything fails at any step, the response is a `401 Unauthorized`.
 
-```javascript
-export async function authenticate(req, res, next) {
-  const token = getBearerToken(req);               // Authorization header or cookie
-  const decoded = jwt.verify(token, env.jwtSecret); // throws on expired or bad signature
-  const user = await userRepository.findById(decoded.userId); // ensure user still exists
-  if (!user) throw new AppError("Unauthorized", 401);
-  req.user = user;
-  next();
-}
-```
-
-A `JsonWebTokenError` or `TokenExpiredError` thrown by `jwt.verify()` is caught by the centralized error handler and converted to a `401 Unauthorized` response. The client-facing error message never exposes internal detail.
-
-### 4.4 Frontend Session
-
-`AuthContext` initializes from `localStorage` on mount. `useAuth()` provides `user`, `login()`, and `logout()` to the entire component tree. `logout()` deletes the token from storage, clears React state, and redirects to `/login`.
+On the frontend, `AuthContext` reads the stored token from `localStorage` when the app loads and restores the session state. When the user logs out, the token is removed from storage and they're redirected to `/login`.
 
 ---
 
 ## 5. Authorization Flow
 
-Authorization is implemented in three distinct, ordered middleware stages.
+Authorization in this system works in layers. It's not just one check — it's a chain of independent checks that each protect a different concern.
 
-### 5.1 Role-Based Authorization
+**Layer 1 — Role check (`authorizeRoles`):** After authentication passes, `authorizeRoles()` checks whether the user's role is in the list of allowed roles for that specific route. It's a middleware factory — you call it like `authorizeRoles("UNDERWRITER", "ADMIN")` and it returns a middleware function. If the user's role isn't on the list, they get a `403 Forbidden`. The key thing here is that `403` is deliberately different from `401` — 401 means you're not logged in, 403 means you're logged in but not allowed. Mixing these up is a common API design mistake.
 
-`authorizeRoles(...allowedRoles)` is a middleware factory:
-
-```javascript
-export function authorizeRoles(...allowedRoles) {
-  return (req, res, next) => {
-    const roleNames = getRoleNames(req.user);
-    const hasAccess = allowedRoles.some(r => roleNames.includes(r));
-    if (!hasAccess) return errorResponse(res, "Forbidden: insufficient role access", 403);
-    next();
-  };
-}
-```
-
-It always runs **after** `authenticate`, so `req.user` is guaranteed to be set. A `403 Forbidden` (not `401`) is returned because the user is authenticated but does not have the required permission.
-
-**Example route stack:**
+Here's an example of how a route is configured:
 
 ```javascript
-// Only UNDERWRITER and ADMIN can approve amendments
 router.put("/:id/review",
   authenticate,
   authorizeRoles("UNDERWRITER", "ADMIN"),
@@ -251,61 +147,40 @@ router.put("/:id/review",
 );
 ```
 
-### 5.2 Ownership Validation
+**Layer 2 — Ownership check (`requirePolicyOwnership`):** For routes where a customer references a policy (when submitting an amendment, reduction, or claim), ownership is verified at the middleware level. The middleware loads the policy from the database and checks whether `policy.customer` matches `req.user._id`. Admins and Agents skip this check entirely since they have broader operational access. Anyone else who references a policy they don't own gets a `403`.
 
-`requirePolicyOwnership` prevents customers from acting on policies that belong to other customers:
+**Layer 3 — Service-level filtering:** Even if a customer gets through the role and ownership checks, the listing endpoints filter data in the service layer too. For example, when a customer calls `GET /api/policies`, the `policyService` queries the database with `{ customer: req.user._id }`. Admins get all records. This double filtering ensures that even a misconfigured middleware can't accidentally leak another customer's data.
 
-```
-IF role is ADMIN or AGENT  →  pass through unconditionally
-IF role is CUSTOMER        →  allow only if policy.customer === req.user._id
-ALL other cases            →  403 Forbidden
-```
-
-This middleware is applied on amendment, reduction, and claim **creation** routes, which all require a `policyId` in the request.
-
-### 5.3 Service-Level Data Filtering
-
-Even after a CUSTOMER passes the role check on `GET /policies`, the `policyService.listPolicies()` method scopes the database query to `{ customer: req.user._id }`. This double-check ensures that no policy record belonging to another customer can be returned, even if the middleware is misconfigured.
-
-### 5.4 Response Field Filtering
-
-`stripSensitiveUserFields()` removes `passwordHash` and other sensitive fields before any user object is serialized to JSON. This is applied at the repository return point and in every controller that returns user data.
+**Response field filtering:** Every user object that gets returned in a response goes through `stripSensitiveUserFields()`, which removes `passwordHash` before anything is serialized to JSON. This is applied consistently across every endpoint that returns user data.
 
 ---
 
 ## 6. Comprehensive User Profile Design
 
-### 6.1 Two-Layer Schema Architecture
+The user model is split into two layers. This was a deliberate design decision — it keeps authentication concerns separate from business profile data, and it makes it easier to control what each type of user can update.
 
-The Mongoose `User` model uses two embedded schemas:
+The outer schema holds the authentication fields: `username`, `passwordHash`, `roles`, `accountStatus`, and `lastLoginAt`. These can only be changed through specific admin endpoints. The embedded `profile` schema holds everything else — name, date of birth, contact details, address, customer or employee numbers, emergency contact, and role-specific fields for internal staff.
+
+Here's how the schema structure looks conceptually:
 
 ```
-userSchema (authentication layer)
-│
-├─ username              (unique login ID)
-├─ passwordHash          (bcrypt, never returned in responses)
-├─ roles                 (ObjectId[] → Role documents)
-├─ accountStatus         ("ACTIVE" | "INACTIVE")
-├─ lastLoginAt           (updated on every successful login)
-└─ profile: userProfileSchema (business layer)
-   │
-   ├─ firstName, lastName
-   ├─ dateOfBirth
-   ├─ email, phone
-   ├─ addressLine1, addressLine2, city, province, postalCode, country
-   ├─ customerNumber / employeeNumber
-   ├─ userType             ("CUSTOMER" | "INTERNAL")
-   ├─ preferredContactMethod
-   ├─ emergencyContactName, emergencyContactPhone
-   ├─ department, jobTitle, supervisorName  (internal staff)
-   ├─ internalAccessStatus                 (internal staff)
-   ├─ clientCategory                       (customer)
-   └─ beneficiaryName                      (customer — life insurance)
+User document
+├── username, passwordHash, roles, accountStatus, lastLoginAt
+└── profile
+    ├── firstName, lastName, dateOfBirth
+    ├── email, phone
+    ├── addressLine1, addressLine2, city, province, postalCode, country
+    ├── customerNumber / employeeNumber
+    ├── userType (CUSTOMER or INTERNAL)
+    ├── preferredContactMethod
+    ├── emergencyContactName, emergencyContactPhone
+    ├── department, jobTitle, supervisorName    (internal staff only)
+    ├── internalAccessStatus                   (internal staff only)
+    ├── clientCategory                         (customers only)
+    └── beneficiaryName                        (customers — life insurance)
 ```
 
-### 6.2 Self-Update Whitelist
-
-`profileService.updateOwnProfile()` iterates incoming fields and applies only those in a hard-coded `Set` of 16 permitted keys. Sensitive fields (`userType`, `roles`, `accountStatus`, `employeeNumber`, `internalAccessStatus`) are silently discarded even if included in the request body:
+**Self-update whitelist:** When a user updates their own profile, the service only applies fields that appear in a hard-coded set of 16 allowed keys. If someone sends `userType` or `accountStatus` in the request body, those fields are silently ignored. This is a simple but effective defence against privilege escalation through self-update.
 
 ```javascript
 const ALLOWED_OWN_PROFILE_FIELDS = new Set([
@@ -317,79 +192,28 @@ const ALLOWED_OWN_PROFILE_FIELDS = new Set([
 ]);
 ```
 
-### 6.3 Admin Profile Access
-
-Administrators use a separate endpoint (`PUT /api/admin/users/:userId/profile`) that has no field restriction. Admins can also update `accountStatus` via a dedicated status endpoint, and roles via the RBAC endpoint. This clean separation ensures that profile data, security status, and role assignment are managed through distinct, independently auditable API calls.
+**Admin access:** Admins use separate, purpose-specific endpoints for different kinds of updates. Profile fields go through `PUT /api/admin/users/:userId/profile`. Account status goes through `PUT /api/admin/users/:userId/status`. Role assignments go through the RBAC endpoints. This separation means each type of change is independently auditable.
 
 ---
 
 ## 7. RBAC Management by Administrator
 
-### 7.1 Design Principles
+One of the main requirements of this lab was that role management had to work through the application itself — not through direct database access, not through config files. An admin logs in and uses the UI to assign or remove roles for any user, and the changes take effect immediately.
 
-- RBAC is managed through the live application UI — no direct database access or file changes are required.
-- Only the ADMIN role can mutate role assignments. The `authorizeRoles("ADMIN")` middleware guard is applied to every RBAC mutation endpoint.
-- No self-service role elevation endpoint exists. Users cannot modify their own role assignments.
-- Role changes take effect immediately: `authenticate` re-fetches the user from MongoDB on every request, so the live database state — not the JWT — is always the authoritative source of role information.
+The system has seven roles: `CUSTOMER`, `AGENT`, `UNDERWRITER`, `CLAIMS_ADJUSTER`, `CUSTOMER_SERVICE`, `COMPLIANCE_OFFICER`, and `ADMIN`. They're defined in `src/constants/roles.js` and seeded into a `roles` collection in MongoDB when you first set up the database.
 
-### 7.2 Role Definitions
+**How role assignment works:** The admin submits a list of role names to `PUT /api/admin/rbac/users/:userId/roles`. The `rbacService.assignRoles()` method looks each name up in the `roles` collection to get the corresponding MongoDB ObjectId. If any name doesn't match a real role, the request is rejected with a 400. If everything validates, the user's `roles` array is updated with the ObjectIds. Storing ObjectIds rather than name strings keeps the data properly referenced in MongoDB.
 
-| Role Constant | Display Name | Portal |
-|---|---|---|
-| `CUSTOMER` | Customer | External |
-| `AGENT` | Insurance Agent | Internal |
-| `UNDERWRITER` | Underwriter | Internal |
-| `CLAIMS_ADJUSTER` | Claims Adjuster | Internal |
-| `CUSTOMER_SERVICE` | Customer Service Rep | Internal |
-| `COMPLIANCE_OFFICER` | Compliance Officer | Internal |
-| `ADMIN` | Administrator | Admin |
+**How role removal works:** The admin calls `DELETE /api/admin/rbac/users/:userId/roles/:roleName`. The service looks up the role by name, gets its ObjectId, filters that ID out of the user's current roles array, and saves. It only removes that one role — everything else stays intact.
 
-### 7.3 Role Assignment Flow
+**Why role changes take effect immediately:** Because the `authenticate` middleware re-fetches the full user document from MongoDB on every single request. The JWT payload has a `roles` field but it's informational — the actual authorization check always uses the live database record. This means there's no need to re-issue tokens after a role change.
 
-```
-Admin selects user in /admin/rbac
-Checks desired roles in RoleAssignmentForm
-Submits → PUT /api/admin/rbac/users/:userId/roles
-         { "roles": ["AGENT", "UNDERWRITER"] }
-                │
-                ▼
-rbacService.assignRoles(userId, ["AGENT", "UNDERWRITER"])
-  1. roleRepository.findByNames(["AGENT", "UNDERWRITER"])
-     → returns [{ _id: ObjectId("..."), name: "AGENT" }, ...]
-  2. Validate: array length must match input length (else 400)
-  3. roleIds = validRoles.map(r => r._id)
-  4. userRepository.updateById(userId, { roles: roleIds })
-                │
-                ▼
-Updated user document returned (passwordHash stripped)
-```
-
-### 7.4 Role Removal Flow
-
-```
-Admin clicks "Remove" on a specific role badge in /admin/users/[id]
-Calls → DELETE /api/admin/rbac/users/:userId/roles/:roleName
-                │
-                ▼
-rbacService.removeRole(userId, roleName)
-  1. Load user document
-  2. roleRepository.findByNames([roleName]) → get ObjectId
-  3. nextRoles = user.roles.filter(r => String(r._id) !== roleIdStr)
-  4. userRepository.updateById(userId, { roles: nextRoles.map(r => r._id) })
-                │
-                ▼
-Updated user document returned
-```
-
-### 7.5 Admin Frontend RBAC Screens
-
-| Screen | URL | Description |
-|---|---|---|
-| User list | `/admin/users` | Searchable table; link to detail/edit |
-| Create user | `/admin/users/create` | Provision account with roles |
-| User detail + edit | `/admin/users/[id]` | View/edit profile; toggle to edit mode |
-| Role assignment | `/admin/rbac` | Checkbox grid of all roles per user |
-| Account status | `/admin/account-status` | One-click activate/deactivate toggle |
+**Admin frontend screens for RBAC:**
+- `/admin/users` — searchable list of all users
+- `/admin/users/create` — create a new account with roles
+- `/admin/users/[id]` — view and edit any user including their profile and roles
+- `/admin/rbac` — checkbox interface for assigning and removing roles
+- `/admin/account-status` — activate or deactivate any account with a single button
 
 ---
 

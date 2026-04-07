@@ -1,207 +1,178 @@
 # NorthStar Insurance Platform
 
-A secure, full-stack insurance platform built with **Node.js / Express.js** on the backend and **React / Next.js** on the frontend. The system demonstrates HTTPS-secured APIs, JWT authentication, role-based access control (RBAC), ownership validation, and comprehensive user profile management in a realistic insurance business context.
+This is a full-stack insurance platform I built for the Modern Web Technologies lab. The idea behind it is to simulate how a real insurance company might build a secure web system — one that handles everything from customer policy management to internal claims processing, all protected with HTTPS, JWT tokens, and proper role-based access control.
+
+The backend is built with Node.js and Express.js, and the frontend uses Next.js with TypeScript. MongoDB is used for storage. The whole thing is designed around security first — every API is protected, every user has a role, and customers can only ever see their own data.
 
 ---
 
 ## Table of Contents
 
-1. [Project Description](#1-project-description)
-2. [Technology Stack](#2-technology-stack)
+1. [What This Project Does](#1-what-this-project-does)
+2. [Tech Stack](#2-tech-stack)
 3. [Project Structure](#3-project-structure)
-4. [Prerequisites](#4-prerequisites)
-5. [Certificate Setup](#5-certificate-setup)
-6. [Environment Configuration](#6-environment-configuration)
-7. [Installation and Seeding](#7-installation-and-seeding)
-8. [Running the Platform](#8-running-the-platform)
-9. [Sample Users and Roles](#9-sample-users-and-roles)
-10. [JWT Authentication](#10-jwt-authentication)
+4. [What You Need Before Starting](#4-what-you-need-before-starting)
+5. [Setting Up HTTPS Certificates](#5-setting-up-https-certificates)
+6. [Environment Variables](#6-environment-variables)
+7. [Installing and Seeding](#7-installing-and-seeding)
+8. [Running the App](#8-running-the-app)
+9. [Test Users and Roles](#9-test-users-and-roles)
+10. [How JWT Works in This App](#10-how-jwt-works-in-this-app)
 11. [User Profile Module](#11-user-profile-module)
-12. [RBAC Management](#12-rbac-management)
-13. [Protected Routes](#13-protected-routes)
-14. [API Reference](#14-api-reference)
-15. [Security Best Practices](#15-security-best-practices)
-16. [Frontend Screens](#16-frontend-screens)
+12. [RBAC — How Role Management Works](#12-rbac--how-role-management-works)
+13. [How Routes Are Protected](#13-how-routes-are-protected)
+14. [API Endpoints](#14-api-endpoints)
+15. [Security Decisions Made](#15-security-decisions-made)
+16. [Frontend Pages](#16-frontend-pages)
 
 ---
 
-## 1. Project Description
+## 1. What This Project Does
 
-NorthStar Insurance Platform is a two-sided digital insurance system that serves both external customers and internal staff. The platform allows customers to view and manage their insurance policies, submit amendment and coverage reduction requests, and file claims. Internal staff can create policies, review underwriting requests, adjudicate claims, and manage platform users and their roles.
+NorthStar is a two-sided insurance platform. On one side you have customers who can log in, view their policies, request changes, and submit claims. On the other side you have internal staff — agents who create policies, underwriters who review amendment and reduction requests, claims adjusters who process claims, and administrators who manage everything.
 
-The platform supports three insurance product categories:
+The system supports three types of insurance:
 
-- **Life Insurance** — includes beneficiary tracking
-- **Car Insurance** — includes vehicle make and model
-- **Home Insurance** — includes property address
+- **Life Insurance** — tracks a beneficiary name
+- **Car Insurance** — tracks the vehicle make and model
+- **Home Insurance** — tracks the property address
 
-Security is the primary design goal. All communication is encrypted using HTTPS, all protected endpoints require a valid JWT, all actions are checked against the authenticated user's role, and customers may only access their own records.
+The main focus of the lab was security. Every single API call goes over HTTPS, every protected endpoint requires a valid JWT, and users can only do what their role allows. A customer trying to view someone else's policy gets a 403. A claims adjuster trying to assign roles gets a 403. The boundaries are enforced at the middleware level, not just on the frontend.
 
 ---
 
-## 2. Technology Stack
+## 2. Tech Stack
 
-| Layer | Technology |
-|---|---|
-| Runtime | Node.js 18+ |
-| Backend Framework | Express.js 4 |
-| Transport Security | Node.js HTTPS with PFX certificate |
-| Authentication | JSON Web Tokens (jsonwebtoken) |
-| Password Security | bcryptjs |
-| Database | MongoDB with Mongoose 8 |
-| Input Validation | express-validator |
-| Security Headers | helmet, cors |
-| Frontend Framework | Next.js 15 (App Router) |
-| Frontend Language | TypeScript / React 19 |
-| UI Icons | lucide-react |
+**Backend:**
+- Node.js 18 with ES modules
+- Express.js 4 for routing and middleware
+- Node.js built-in `https` module for HTTPS (no HTTP fallback)
+- `jsonwebtoken` for signing and verifying JWTs
+- `bcryptjs` for hashing passwords
+- MongoDB with Mongoose 8 for data storage
+- `express-validator` for input validation
+- `helmet` for security headers, `cors` for origin control
+
+**Frontend:**
+- Next.js 15 with the App Router
+- React 19 with TypeScript
+- Native `fetch` API for HTTPS calls to the backend
+- `lucide-react` for icons
 
 ---
 
 ## 3. Project Structure
 
+The project is split into two applications — a backend API and a frontend web app — inside the same repo.
+
 ```
 insurance-platform/
 ├── backend-api/
-│   ├── cert/                        # HTTPS PFX certificate (not committed)
-│   ├── src/
-│   │   ├── config/                  # env, https, db, cors configuration
-│   │   ├── constants/               # roles, statuses, claim types, etc.
-│   │   ├── controllers/             # request handlers per module
-│   │   ├── middleware/              # auth, role, ownership, error, validation
-│   │   ├── models/                  # Mongoose schemas: User, Policy, Claim, etc.
-│   │   ├── repositories/            # data access layer (one per model)
-│   │   ├── routes/                  # Express routers mounted in index.js
-│   │   ├── seed/                    # roles.seed.js and users.seed.js
-│   │   ├── services/                # business logic per module
-│   │   ├── utils/                   # apiResponse, appError, safeObject, etc.
-│   │   ├── validators/              # express-validator rule sets per module
-│   │   ├── app.js                   # Express application setup
-│   │   └── server.js                # HTTPS server entry point
-│   ├── .env                         # Active environment (not committed)
-│   ├── .env.example                 # Template for environment variables
-│   └── package.json
+│   ├── cert/               ← your HTTPS certificate lives here (not committed to git)
+│   └── src/
+│       ├── config/         ← environment, HTTPS, database, CORS setup
+│       ├── constants/      ← role names, status values, claim types
+│       ├── controllers/    ← one file per module, handles req/res
+│       ├── middleware/     ← authenticate, authorizeRoles, ownershipCheck, errorHandler
+│       ├── models/         ← Mongoose schemas for User, Policy, Claim, etc.
+│       ├── repositories/   ← all database calls live here, nowhere else
+│       ├── routes/         ← Express routers, one per module
+│       ├── seed/           ← seed scripts for roles and users
+│       ├── services/       ← business logic layer
+│       ├── validators/     ← express-validator rules per endpoint
+│       ├── utils/          ← helpers: apiResponse, appError, safeObject
+│       ├── app.js          ← Express app setup (middleware, routes)
+│       └── server.js       ← starts the HTTPS server
 │
 ├── frontend-web/
-│   ├── src/
-│   │   ├── app/                     # Next.js App Router pages
-│   │   │   ├── login/               # Login screen
-│   │   │   ├── dashboard/           # Role-aware dashboard
-│   │   │   ├── profile/             # Profile view and edit
-│   │   │   ├── policies/            # Policy list, detail, create
-│   │   │   ├── amendments/          # Submit and review amendments
-│   │   │   ├── reductions/          # Submit and review reductions
-│   │   │   ├── claims/              # Submit and review claims
-│   │   │   ├── support/             # Customer service view
-│   │   │   ├── compliance/          # Compliance officer view
-│   │   │   └── admin/               # User management, RBAC, account status
-│   │   ├── components/
-│   │   │   ├── forms/               # LoginForm, UserForm, ClaimForm, etc.
-│   │   │   ├── guards/              # ProtectedRoute, RoleGuard
-│   │   │   ├── layout/              # Sidebar, PageShell, SectionHeader
-│   │   │   ├── feedback/            # Alert component
-│   │   │   └── tables/              # StatusBadge
-│   │   ├── context/                 # AuthContext
-│   │   ├── hooks/                   # useAuth
-│   │   ├── lib/                     # api.ts, auth.ts, constants.ts, formatters.ts
-│   │   └── types/                   # TypeScript interfaces
-│   ├── .env.local                   # Active environment (not committed)
-│   ├── .env.local.example           # Template for frontend environment variables
-│   └── package.json
+│   └── src/
+│       ├── app/            ← Next.js pages (login, dashboard, policies, claims, etc.)
+│       ├── components/     ← reusable UI: forms, guards, layout, tables
+│       ├── context/        ← AuthContext (stores token and user globally)
+│       ├── hooks/          ← useAuth hook
+│       ├── lib/            ← api.ts (all fetch calls), formatters, constants
+│       └── types/          ← TypeScript interfaces
 │
-├── seed.bat                         # Windows: seed roles then users
-├── start-platform.bat               # Windows: start backend and frontend
-├── start-platform.sh                # macOS/Linux: start backend and frontend
-├── README.md                        # This file
-└── report.md                        # Lab report
+├── seed.bat                ← Windows: run this to seed the database
+├── start-platform.bat      ← Windows: starts both servers at once
+└── start-platform.sh       ← Mac/Linux: same thing
 ```
 
 ---
 
-## 4. Prerequisites
+## 4. What You Need Before Starting
 
-- **Node.js** 18 or later — [nodejs.org](https://nodejs.org)
-- **npm** 9 or later (bundled with Node.js)
-- **MongoDB** 6 or later running locally, or a MongoDB Atlas connection string
-- **OpenSSL** for generating the development certificate (see Section 5)
+Before you can run the project, make sure you have these installed:
 
-Verify installations:
+- **Node.js 18 or later** — download from [nodejs.org](https://nodejs.org)
+- **npm 9+** — comes bundled with Node.js
+- **MongoDB** — either run it locally or use a free MongoDB Atlas cluster
+- **OpenSSL** — needed to generate the HTTPS certificate
+
+You can check everything is ready by running:
 
 ```bash
-node --version    # v18+
-npm --version     # 9+
-mongod --version  # 6+
-openssl version   # any recent version
+node --version
+npm --version
+mongod --version
+openssl version
 ```
 
 ---
 
-## 5. Certificate Setup
+## 5. Setting Up HTTPS Certificates
 
-The backend requires a PFX (PKCS#12) certificate for HTTPS. A self-signed certificate is sufficient for development.
-
-### Step 1 — Generate a self-signed certificate
-
-Open a terminal inside `backend-api/`:
+The backend runs exclusively over HTTPS, so you need to generate a self-signed certificate for local development. Open a terminal inside the `backend-api/` folder and run these commands:
 
 ```bash
-mkdir -p cert && cd cert
+mkdir -p cert
+cd cert
 
-# Generate a 4096-bit RSA key and self-signed certificate (valid 365 days)
+# Create a private key and self-signed certificate
 openssl req -x509 -newkey rsa:4096 -keyout key.pem -out cert.pem \
   -sha256 -days 365 -nodes \
   -subj "/C=CA/ST=Ontario/L=Toronto/O=NorthStar/CN=localhost"
 
-# Bundle into a PFX — choose any passphrase and record it
+# Bundle into a PFX file — pick any passphrase and remember it
 openssl pkcs12 -export \
   -out server.pfx \
   -inkey key.pem \
   -in cert.pem \
-  -passout pass:your_pfx_passphrase
+  -passout pass:your_passphrase_here
 ```
 
-### Step 2 — Record the passphrase
+After running that, open `backend-api/.env` and set `HTTPS_PFX_PASSPHRASE` to the passphrase you used.
 
-Set `HTTPS_PFX_PASSPHRASE=your_pfx_passphrase` in `backend-api/.env`.
+**Trusting the certificate in your browser:** Since this is a self-signed cert, the browser will show a security warning. You can import `cert/cert.pem` into your system's trusted store, or just click "Advanced → Proceed to localhost" when the warning appears.
 
-### Step 3 — Trust the certificate (recommended for development)
-
-**Browsers:** Import `cert/cert.pem` into your system trusted certificate store, or click **Advanced → Proceed** when the browser warns about the certificate.
-
-**Next.js fetch client:** Set `NODE_TLS_REJECT_UNAUTHORIZED=0` in `frontend-web/.env.local`. This flag disables TLS verification for the Node.js process and must **never** be used in production.
+**For the frontend:** Add `NODE_TLS_REJECT_UNAUTHORIZED=0` in `frontend-web/.env.local` so the Next.js process doesn't reject the self-signed cert. This is only for development — never use this setting in production.
 
 ---
 
-## 6. Environment Configuration
+## 6. Environment Variables
 
 ### Backend — `backend-api/.env`
+
+Copy the example file and fill in the values:
 
 ```bash
 cp backend-api/.env.example backend-api/.env
 ```
 
-| Variable | Required | Description |
-|---|---|---|
-| `NODE_ENV` | No | `development` (default) or `production` |
-| `PORT` | No | HTTPS port, default `5001` |
-| `MONGODB_URI` | **Yes** | MongoDB connection string |
-| `JWT_SECRET` | **Yes** | Long random string — minimum 32 characters |
-| `JWT_EXPIRES_IN` | No | Token lifetime, default `2h` |
-| `FRONTEND_URL` | **Yes** | Frontend origin for CORS, e.g. `http://localhost:3000` |
-| `HTTPS_PFX_PATH` | **Yes** | Relative path to PFX file, e.g. `./cert/server.pfx` |
-| `HTTPS_PFX_PASSPHRASE` | **Yes** | Passphrase set when the PFX was exported |
-
-**Example `.env`:**
+Here's what a working `.env` file looks like:
 
 ```env
 NODE_ENV=development
 PORT=5001
 MONGODB_URI=mongodb://127.0.0.1:27017/insurance_platform
-JWT_SECRET=a_long_random_string_at_least_32_chars
+JWT_SECRET=replace_this_with_a_long_random_string_of_at_least_32_chars
 JWT_EXPIRES_IN=2h
 FRONTEND_URL=http://localhost:3000
 HTTPS_PFX_PATH=./cert/server.pfx
-HTTPS_PFX_PASSPHRASE=your_pfx_passphrase
+HTTPS_PFX_PASSPHRASE=your_passphrase_here
 ```
+
+A few things to keep in mind: `JWT_SECRET` should be a long random string — think of it like a password for signing tokens. `FRONTEND_URL` tells the backend which origin is allowed through CORS. The PFX path and passphrase must match what you generated in the previous step.
 
 ### Frontend — `frontend-web/.env.local`
 
@@ -209,90 +180,87 @@ HTTPS_PFX_PASSPHRASE=your_pfx_passphrase
 cp frontend-web/.env.local.example frontend-web/.env.local
 ```
 
-| Variable | Description |
-|---|---|
-| `NEXT_PUBLIC_API_BASE_URL` | Full URL of the backend API, e.g. `https://localhost:5001/api` |
-| `NODE_TLS_REJECT_UNAUTHORIZED` | Set to `0` in development to allow the self-signed certificate |
+```env
+NEXT_PUBLIC_API_BASE_URL=https://localhost:5001/api
+NODE_TLS_REJECT_UNAUTHORIZED=0
+```
 
 ---
 
-## 7. Installation and Seeding
+## 7. Installing and Seeding
 
-### Install dependencies
+Install dependencies for both projects:
 
 ```bash
-# Terminal 1 — Backend
-cd backend-api && npm install
+# backend
+cd backend-api
+npm install
 
-# Terminal 2 — Frontend
-cd frontend-web && npm install
+# frontend (open a second terminal)
+cd frontend-web
+npm install
 ```
 
-### Seed the database
+Once that's done, seed the database. **Important:** always seed roles before users, otherwise the user seed script will fail because it needs role IDs to exist first.
 
-Roles must be seeded before users.
-
-**Windows (run from project root):**
+**Windows — just run this from the project root:**
 ```
 seed.bat
 ```
 
-**macOS / Linux:**
+**Mac / Linux:**
 ```bash
 cd backend-api
 node src/seed/roles.seed.js
 node src/seed/users.seed.js
 ```
 
-The seed deletes and recreates all users. Always run roles first.
+The seed script wipes any existing users and recreates them fresh. If you re-run it, you'll lose any records you created manually inside the app.
 
 ---
 
-## 8. Running the Platform
+## 8. Running the App
 
-**Windows (double-click or run from project root):**
-```
-start-platform.bat
-```
+**Windows — easiest way:**
+Double-click `start-platform.bat` from the project root. It opens both servers in separate terminal windows automatically.
 
-**Manual:**
+**Or manually in two terminals:**
 ```bash
-# Terminal 1 — Backend
-cd backend-api && npm run dev
+# Terminal 1
+cd backend-api
+npm run dev
 
-# Terminal 2 — Frontend
-cd frontend-web && npm run dev
+# Terminal 2
+cd frontend-web
+npm run dev
 ```
 
-| Service | URL |
-|---|---|
-| Backend API | `https://localhost:5001/api` |
-| Frontend | `http://localhost:3000` |
+Once both are running, open `http://localhost:3000` in your browser to use the app. The backend API is available at `https://localhost:5001/api`.
 
 ---
 
-## 9. Sample Users and Roles
+## 9. Test Users and Roles
 
-All seeded users share the password: **`Password123!`**
+All seeded accounts use the password **`Password123!`**
 
-| Username | Role | Portal | Description |
-|---|---|---|---|
-| `admin1` | ADMIN | Admin | Full platform access; manages users, roles, and all records |
-| `agent1` | AGENT | Internal | Creates policies and assists customers |
-| `underwriter1` | UNDERWRITER | Internal | Approves or rejects amendment and reduction requests |
-| `adjuster1` | CLAIMS_ADJUSTER | Internal | Reviews and decides on submitted claims |
-| `csrep1` | CUSTOMER_SERVICE | Internal | Views customer profiles, policies, and claim status for support |
-| `compliance1` | COMPLIANCE_OFFICER | Internal | Read-only visibility into users, roles, and operations |
-| `customer1` | CUSTOMER | Customer | Manages own policies, submits amendments, reductions, and claims |
+| Username | Role | What they can do |
+|---|---|---|
+| `admin1` | ADMIN | Full access — user management, RBAC, all records |
+| `agent1` | AGENT | Create policies, assist customers |
+| `underwriter1` | UNDERWRITER | Approve or reject amendment and reduction requests |
+| `adjuster1` | CLAIMS_ADJUSTER | Review and decide on claims |
+| `csrep1` | CUSTOMER_SERVICE | Look up customer profiles, policies, and claims for support |
+| `compliance1` | COMPLIANCE_OFFICER | Read-only view of users, roles, and platform activity |
+| `customer1` | CUSTOMER | Manage own policies, request amendments/reductions, submit claims |
 
-### Role Capabilities
+**Who can do what:**
 
-| Operation | CUSTOMER | AGENT | UNDERWRITER | ADJUSTER | CS REP | COMPLIANCE | ADMIN |
+| Action | CUSTOMER | AGENT | UNDERWRITER | ADJUSTER | CS REP | COMPLIANCE | ADMIN |
 |---|---|---|---|---|---|---|---|
 | View own profile | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ |
-| Update own profile | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ |
+| Edit own profile | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ |
 | View all users | ❌ | ❌ | ❌ | ❌ | ❌ | ✅ read-only | ✅ |
-| Create/update users | ❌ | ❌ | ❌ | ❌ | ❌ | ❌ | ✅ |
+| Create/edit users | ❌ | ❌ | ❌ | ❌ | ❌ | ❌ | ✅ |
 | Assign/remove roles | ❌ | ❌ | ❌ | ❌ | ❌ | ❌ | ✅ |
 | Create policy | ❌ | ✅ | ❌ | ❌ | ❌ | ❌ | ✅ |
 | View policies | Own only | ✅ | ✅ | Limited | ✅ | ✅ read-only | ✅ |
@@ -306,23 +274,11 @@ All seeded users share the password: **`Password123!`**
 
 ---
 
-## 10. JWT Authentication
+## 10. How JWT Works in This App
 
-### Token issuance
+When a user logs in, the backend validates their password using `bcrypt.compare()`. If it matches, it updates the `lastLoginAt` timestamp on the user record and issues a signed JWT using the `JWT_SECRET` from the environment. The token expires after 2 hours by default.
 
-1. Client sends `POST /api/auth/login` with `{ username, password }`.
-2. `authService` validates credentials with `bcrypt.compare()`.
-3. On success, `lastLoginAt` is updated and a JWT is signed:
-
-```javascript
-jwt.sign(
-  { userId, username, roles },
-  env.jwtSecret,
-  { expiresIn: env.jwtExpiresIn }  // default "2h"
-)
-```
-
-### Token payload
+The token payload looks like this:
 
 ```json
 {
@@ -334,116 +290,84 @@ jwt.sign(
 }
 ```
 
-Password hashes are **never** included in the token payload.
+It includes `userId`, `username`, `roles`, an issue timestamp (`iat`), and an expiry (`exp`). Passwords are never included.
 
-### Token verification
+Every protected API route runs through the `authenticate` middleware first. It reads the `Authorization: Bearer <token>` header, calls `jwt.verify()` to check the signature and expiry, and then fetches the full user from MongoDB using the `userId` from the decoded payload. This extra database lookup is intentional — it ensures the user still exists and their account hasn't been deleted since the token was issued. If anything fails, the middleware returns a `401` immediately.
 
-The `authenticate` middleware (`src/middleware/authMiddleware.js`) on every protected route:
-
-1. Reads `Authorization: Bearer <token>` header (or `token` cookie).
-2. Calls `jwt.verify(token, env.jwtSecret)` — rejects malformed/expired tokens with `401`.
-3. Re-fetches the user from MongoDB using `decoded.userId` to ensure the account still exists.
-4. Attaches the user to `req.user` for downstream middleware.
-
-### Frontend token storage
-
-The token is stored in `localStorage` and attached to every API request by `src/lib/api.ts`. The `AuthContext` restores session state from `localStorage` on page load. Logout clears the token and redirects to `/login`.
+On the frontend, the token is stored in `localStorage` and attached to every request by `src/lib/api.ts`. The `AuthContext` reads from storage on page load to restore session state. When the user logs out, the token is deleted and they're sent back to `/login`.
 
 ---
 
 ## 11. User Profile Module
 
-### Authentication layer (outer schema)
+The user model is deliberately split into two parts. The outer schema holds authentication-related fields, and the embedded profile schema holds all the business information about the person.
 
-| Field | Type | Description |
-|---|---|---|
-| `username` | String | Unique login identifier |
-| `passwordHash` | String | bcrypt hash — **never returned in responses** |
-| `roles` | ObjectId[] | References to Role documents |
-| `accountStatus` | String | `ACTIVE` or `INACTIVE` |
-| `lastLoginAt` | Date | Timestamp of most recent successful login |
-| `createdAt` / `updatedAt` | Date | Auto-managed by Mongoose |
+**Authentication fields** (stored at the top level of the user document):
+- `username` — unique login identifier
+- `passwordHash` — bcrypt hash, never returned in any API response
+- `roles` — array of references to Role documents in MongoDB
+- `accountStatus` — either `ACTIVE` or `INACTIVE`
+- `lastLoginAt` — updated every time the user logs in successfully
+- `createdAt` and `updatedAt` — managed automatically by Mongoose
 
-### Business profile layer (embedded schema)
+**Profile fields** (stored inside `user.profile`):
 
-| Field | Purpose |
-|---|---|
-| `firstName`, `lastName` | Full name |
-| `dateOfBirth` | Date of birth |
-| `email` | Contact email |
-| `phone` | Phone number |
-| `addressLine1`, `addressLine2`, `city`, `province`, `postalCode`, `country` | Full postal address |
-| `customerNumber` / `employeeNumber` | Business identifier |
-| `userType` | `CUSTOMER` or `INTERNAL` |
-| `preferredContactMethod` | e.g. EMAIL, PHONE |
-| `emergencyContactName`, `emergencyContactPhone` | Emergency contact |
-| `department`, `jobTitle`, `supervisorName` | Internal staff organization fields |
-| `internalAccessStatus` | Internal access state |
-| `clientCategory` | Customer segment (e.g. STANDARD, PREMIUM) |
-| `beneficiaryName` | Life insurance beneficiary placeholder |
+Personal info: `firstName`, `lastName`, `dateOfBirth`, `email`, `phone`
 
-### Self-update whitelist
+Address: `addressLine1`, `addressLine2`, `city`, `province`, `postalCode`, `country`
 
-`profileService.updateOwnProfile()` uses an explicit allowlist of 16 fields. Fields like `userType`, `employeeNumber`, and `accountStatus` are silently ignored even if sent in the request body, preventing privilege escalation.
+Platform metadata: `customerNumber` or `employeeNumber`, `userType` (CUSTOMER or INTERNAL), `preferredContactMethod`, `emergencyContactName`, `emergencyContactPhone`
+
+Internal staff only: `department`, `jobTitle`, `supervisorName`, `internalAccessStatus`
+
+Customer only: `clientCategory` (e.g. standard, premium), `beneficiaryName` (life insurance placeholder)
+
+**Self-update whitelist:** When a user updates their own profile via `PUT /api/profile/me`, the service only applies fields from a hardcoded allowlist of 16 personal fields. Even if someone sends `userType` or `accountStatus` in the request body, those fields are silently ignored. This prevents any kind of privilege escalation through self-update.
 
 ---
 
-## 12. RBAC Management
+## 12. RBAC — How Role Management Works
 
-RBAC is managed exclusively through the application by users with the ADMIN role.
+Role-based access control is managed entirely through the app — there's no need to touch the database directly or edit any config files. Only users with the `ADMIN` role can make changes to role assignments.
 
-### Admin endpoints
+**What the admin can do:**
+- List all users and see which roles they have
+- Create new user accounts with roles pre-assigned
+- Assign a new set of roles to any user (`PUT /api/admin/rbac/users/:userId/roles`)
+- Remove a single specific role from a user (`DELETE /api/admin/rbac/users/:userId/roles/:roleName`)
+- Activate or deactivate any account (`PUT /api/admin/users/:userId/status`)
+- List all available roles in the system
 
-| Method | Endpoint | Action |
-|---|---|---|
-| `GET` | `/api/admin/rbac/roles` | List all defined roles |
-| `GET` | `/api/admin/users` | List all users with role assignments |
-| `POST` | `/api/admin/users` | Create a new user account |
-| `PUT` | `/api/admin/rbac/users/:userId/roles` | Replace all role assignments |
-| `DELETE` | `/api/admin/rbac/users/:userId/roles/:roleName` | Remove one specific role |
-| `PUT` | `/api/admin/users/:userId/status` | Activate or deactivate account |
+**How role assignment works internally:** When the admin submits a list of role names, the service looks up each name in the `roles` MongoDB collection to get the corresponding ObjectId. If any name doesn't match a real role, the whole request fails with a 400 error. Once all names are validated, the user's `roles` array is updated with the ObjectIds. Storing ObjectIds (not strings) keeps the data consistent with proper document references in MongoDB.
 
-### Role assignment process
+**How role removal works:** The remove endpoint takes a role name in the URL path. The service fetches the user, resolves the name to an ObjectId, filters that role out of the array, and saves. It's straightforward and surgical — only that one role is removed.
 
-1. Admin submits role names to the assign endpoint.
-2. `rbacService` resolves names to MongoDB ObjectIds via `roleRepository.findByNames()`.
-3. Invalid role names cause a `400 Bad Request`.
-4. Valid ObjectIds replace the user's current `roles` array.
-
-### Role removal process
-
-1. Admin calls `DELETE /api/admin/rbac/users/:userId/roles/:roleName`.
-2. `rbacService.removeRole()` resolves the role name, filters it from the user's roles array, and saves.
-
-### Enforcement
-
-- All mutation endpoints are protected by `authorizeRoles("ADMIN")`.
-- No self-service role-elevation endpoint exists.
-- Role changes take effect immediately on the next authenticated request.
+**Enforcement:** Every RBAC mutation endpoint is protected by `authorizeRoles("ADMIN")`. There's deliberately no endpoint that lets users modify their own roles. Role changes take effect immediately on the next request because the `authenticate` middleware always re-fetches the user from MongoDB — the JWT is not the source of truth for roles, the database is.
 
 ---
 
-## 13. Protected Routes
+## 13. How Routes Are Protected
 
-### Backend middleware chain
+Every protected API endpoint passes through a chain of middleware before reaching the controller. The chain looks like this:
 
 ```
-Route = authenticate → authorizeRoles(...) → [requirePolicyOwnership] → controller
+authenticate → authorizeRoles(...) → requirePolicyOwnership → controller
 ```
 
-**`authenticate`** — Verifies JWT; fetches user from DB; attaches to `req.user`; returns `401` on failure.
+**`authenticate`** reads the `Authorization: Bearer <token>` header, verifies the signature and expiry with `jwt.verify()`, then loads the full user from MongoDB. If anything goes wrong — bad token, expired token, user not found — it stops the request and returns a `401 Unauthorized`. Only after this passes does `req.user` get set.
 
-**`authorizeRoles(...roles)`** — Checks `req.user.roles` against the allowed list; returns `403` if no match.
+**`authorizeRoles(...roles)`** is a middleware factory. You call it with a list of allowed roles and it returns a middleware function that checks whether the current user has at least one of them. If not, it returns `403 Forbidden`. The distinction between 401 and 403 matters: 401 means "you're not logged in", 403 means "you're logged in but not allowed here".
 
-**`requirePolicyOwnership`** — Verifies that the policy referenced in the request belongs to the requesting customer. Admin and Agent bypass this check. Returns `403` otherwise.
+**`requirePolicyOwnership`** is used on routes where a customer is referencing a policy (like when submitting an amendment or claim). It loads the policy and checks that `policy.customer` matches `req.user._id`. Admins and Agents bypass this check since they need broader access. Everyone else gets a `403` if they reference a policy that isn't theirs.
 
-### Frontend guards
+On the frontend, two guard components protect pages:
 
-**`ProtectedRoute`** — Redirects unauthenticated users to `/login`.
+**`ProtectedRoute`** checks whether the user is logged in. If not, it redirects to `/login` before rendering anything.
 
-**`RoleGuard`** — Redirects users with insufficient roles to `/unauthorized`.
+**`RoleGuard`** checks whether the logged-in user has one of the required roles. If not, it redirects to `/unauthorized`.
 
-Usage pattern:
+They're always composed together:
+
 ```tsx
 <ProtectedRoute>
   <RoleGuard allowedRoles={["ADMIN"]}>
@@ -454,122 +378,104 @@ Usage pattern:
 
 ---
 
-## 14. API Reference
+## 14. API Endpoints
 
-### Authentication
-| Method | Endpoint | Auth | Description |
-|---|---|---|---|
-| POST | `/api/auth/login` | Public | Login; returns JWT |
+**Auth (public)**
+- `POST /api/auth/login` — submit credentials, get back a JWT and user object
 
-### Profile
-| Method | Endpoint | Roles |
-|---|---|---|
-| GET | `/api/profile/me` | All authenticated |
-| PUT | `/api/profile/me` | All authenticated |
+**Profile (any authenticated user)**
+- `GET /api/profile/me` — view your own profile
+- `PUT /api/profile/me` — update allowed personal fields on your own profile
 
-### Policies
-| Method | Endpoint | Roles |
-|---|---|---|
-| POST | `/api/policies` | AGENT, ADMIN |
-| GET | `/api/policies` | All (CUSTOMER: own only) |
-| GET | `/api/policies/:policyId` | All |
+**Policies**
+- `POST /api/policies` — create a new policy (AGENT, ADMIN)
+- `GET /api/policies` — list policies (customers only see their own)
+- `GET /api/policies/:policyId` — view a single policy
 
-### Amendments
-| Method | Endpoint | Roles |
-|---|---|---|
-| POST | `/api/amendments` | CUSTOMER, AGENT, ADMIN |
-| GET | `/api/amendments` | All |
-| GET | `/api/amendments/review` | UNDERWRITER, ADMIN |
-| PUT | `/api/amendments/:id/review` | UNDERWRITER, ADMIN |
+**Amendments**
+- `POST /api/amendments` — submit an amendment request (CUSTOMER, AGENT, ADMIN)
+- `GET /api/amendments` — list all amendments
+- `GET /api/amendments/review` — pending queue for underwriters (UNDERWRITER, ADMIN)
+- `PUT /api/amendments/:id/review` — approve or reject (UNDERWRITER, ADMIN)
 
-### Reductions
-| Method | Endpoint | Roles |
-|---|---|---|
-| POST | `/api/reductions` | CUSTOMER, AGENT, ADMIN |
-| GET | `/api/reductions` | All |
-| GET | `/api/reductions/review` | UNDERWRITER, ADMIN |
-| PUT | `/api/reductions/:id/review` | UNDERWRITER, ADMIN |
+**Reductions**
+- `POST /api/reductions` — submit a coverage reduction request (CUSTOMER, AGENT, ADMIN)
+- `GET /api/reductions` — list all reductions
+- `GET /api/reductions/review` — pending queue (UNDERWRITER, ADMIN)
+- `PUT /api/reductions/:id/review` — approve or reject (UNDERWRITER, ADMIN)
 
-### Claims
-| Method | Endpoint | Roles |
-|---|---|---|
-| POST | `/api/claims` | CUSTOMER, ADMIN |
-| GET | `/api/claims` | All |
-| GET | `/api/claims/review` | CLAIMS_ADJUSTER, ADMIN |
-| PUT | `/api/claims/:id/review` | CLAIMS_ADJUSTER, ADMIN |
+**Claims**
+- `POST /api/claims` — submit a claim (CUSTOMER, ADMIN)
+- `GET /api/claims` — list claims
+- `GET /api/claims/review` — pending queue (CLAIMS_ADJUSTER, ADMIN)
+- `PUT /api/claims/:id/review` — approve or reject (CLAIMS_ADJUSTER, ADMIN)
 
-### Admin — Users
-| Method | Endpoint | Roles |
-|---|---|---|
-| GET | `/api/admin/users` | ADMIN, COMPLIANCE_OFFICER |
-| POST | `/api/admin/users` | ADMIN |
-| GET | `/api/admin/users/customers` | ADMIN, AGENT, CUSTOMER_SERVICE |
-| GET | `/api/admin/users/:userId` | ADMIN, COMPLIANCE_OFFICER, CUSTOMER_SERVICE |
-| PUT | `/api/admin/users/:userId` | ADMIN |
-| PUT | `/api/admin/users/:userId/status` | ADMIN |
+**Admin — Users**
+- `GET /api/admin/users` — list all users (ADMIN, COMPLIANCE_OFFICER)
+- `POST /api/admin/users` — create a new user (ADMIN)
+- `GET /api/admin/users/customers` — customer list for support (ADMIN, AGENT, CUSTOMER_SERVICE)
+- `GET /api/admin/users/:userId` — view a specific user (ADMIN, COMPLIANCE_OFFICER, CUSTOMER_SERVICE)
+- `PUT /api/admin/users/:userId` — update user details and roles (ADMIN)
+- `PUT /api/admin/users/:userId/status` — activate or deactivate (ADMIN)
 
-### Admin — RBAC
-| Method | Endpoint | Roles |
-|---|---|---|
-| GET | `/api/admin/rbac/roles` | ADMIN, COMPLIANCE_OFFICER |
-| PUT | `/api/admin/rbac/users/:userId/roles` | ADMIN |
-| DELETE | `/api/admin/rbac/users/:userId/roles/:roleName` | ADMIN |
+**Admin — RBAC**
+- `GET /api/admin/rbac/roles` — list all roles (ADMIN, COMPLIANCE_OFFICER)
+- `PUT /api/admin/rbac/users/:userId/roles` — replace role assignments (ADMIN)
+- `DELETE /api/admin/rbac/users/:userId/roles/:roleName` — remove one specific role (ADMIN)
 
 ---
 
-## 15. Security Best Practices
+## 15. Security Decisions Made
 
-| Practice | Implementation |
-|---|---|
-| HTTPS only | `https.createServer` with PFX; no HTTP binding |
-| JWT expiry | 2-hour default, configurable per environment |
-| Password hashing | `bcrypt.hash(password, 12)` |
-| No passwords in responses | `stripSensitiveUserFields()` applied before every response |
-| No hardcoded secrets | All secrets in `.env`; example files committed without real values |
-| Input validation | `express-validator` rule sets on all mutation endpoints |
-| Security headers | `helmet()` in `app.js` |
-| Centralized errors | `errorMiddleware` formats safe messages; stack traces never exposed |
-| 401 vs 403 | Missing/invalid token → 401; authenticated but wrong role → 403 |
-| Field whitelist | Self-update service rejects sensitive fields silently |
-| Ownership checks | `requirePolicyOwnership` prevents cross-customer data access |
-| CORS restriction | Only configured `FRONTEND_URL` is allowed as origin |
+Here's a plain-English summary of the security measures built into the platform and why each one was included:
+
+**HTTPS only** — The server is started with `https.createServer()` and there is no HTTP port. Every byte between the browser and the backend is encrypted.
+
+**JWT with expiry** — Tokens expire after 2 hours. This limits the window of damage if a token is ever leaked.
+
+**Password hashing** — Passwords are hashed with bcrypt using 12 rounds. The raw password is never stored or returned in any response.
+
+**No secrets in code** — Every secret (JWT key, DB URI, PFX passphrase) is in `.env` files that are excluded from git via `.gitignore`. Only example files with placeholder values are committed.
+
+**Input validation** — Every route that accepts a request body runs `express-validator` rules. Invalid input is rejected with a clear error before it ever reaches business logic.
+
+**Security headers** — `helmet()` is applied globally in `app.js`. It sets headers like Content-Security-Policy and X-Frame-Options automatically.
+
+**Centralized error handling** — All errors flow through a single `errorMiddleware`. It returns a consistent JSON shape and never leaks stack traces to the client in production.
+
+**401 vs 403** — These are kept distinct on purpose. A 401 means the user is not authenticated (no token or bad token). A 403 means they're authenticated but don't have permission. Mixing these up is a common mistake that can confuse users and clients.
+
+**Ownership enforcement** — The `requirePolicyOwnership` middleware makes it impossible for a customer to submit a claim or amendment against someone else's policy, even if they know the policy ID.
+
+**Field whitelist on self-update** — The profile service explicitly lists which fields a user is allowed to change on their own profile. Anything else is silently ignored.
+
+**CORS restriction** — The backend only accepts requests from the `FRONTEND_URL` configured in `.env`.
 
 ---
 
-## 16. Frontend Screens
+## 16. Frontend Pages
 
-### Customer Portal
-| Screen | Path |
-|---|---|
-| Login | `/login` |
-| Dashboard | `/dashboard` |
-| Profile | `/profile` |
-| Edit Profile | `/profile/edit` |
-| My Policies | `/policies` |
-| Policy Detail | `/policies/[id]` |
-| Request Amendment | `/amendments/create` |
-| My Amendments | `/amendments` |
-| Request Reduction | `/reductions/create` |
-| My Reductions | `/reductions` |
-| Submit Claim | `/claims/create` |
-| My Claims | `/claims` |
+**Customer Portal** — everything a customer needs to manage their own insurance:
+- `/login` — login page
+- `/dashboard` — overview after login
+- `/profile` and `/profile/edit` — view and edit personal profile
+- `/policies` and `/policies/[id]` — list and view owned policies
+- `/amendments` and `/amendments/create` — view and submit amendment requests
+- `/reductions` and `/reductions/create` — view and submit reduction requests
+- `/claims` and `/claims/create` — view submitted claims and file new ones
 
-### Internal Portal
-| Screen | Path | Roles |
-|---|---|---|
-| Dashboard | `/dashboard` | All authenticated |
-| Create Policy | `/policies/create` | AGENT, ADMIN |
-| Amendment Review | `/amendments/review` | UNDERWRITER, ADMIN |
-| Reduction Review | `/reductions/review` | UNDERWRITER, ADMIN |
-| Claims Review | `/claims/review` | CLAIMS_ADJUSTER, ADMIN |
-| Customer Support | `/support` | CUSTOMER_SERVICE, ADMIN |
-| Compliance View | `/compliance` | COMPLIANCE_OFFICER, ADMIN |
+**Internal Portal** — for agents, underwriters, adjusters, and support staff:
+- `/dashboard` — shared dashboard for all authenticated users
+- `/policies/create` — create a new policy (agent)
+- `/amendments/review` — review pending amendment requests (underwriter)
+- `/reductions/review` — review pending reduction requests (underwriter)
+- `/claims/review` — review and decide on submitted claims (adjuster)
+- `/support` — customer lookup with policy and claim details (customer service)
+- `/compliance` — read-only platform overview with user and role audit (compliance officer)
 
-### Admin Portal
-| Screen | Path |
-|---|---|
-| User List | `/admin/users` |
-| Create User | `/admin/users/create` |
-| User Details / Edit | `/admin/users/[id]` |
-| Role Assignment | `/admin/rbac` |
-| Account Status | `/admin/account-status` |
+**Admin Portal** — user and access management:
+- `/admin/users` — searchable list of all users
+- `/admin/users/create` — provision a new account with roles
+- `/admin/users/[id]` — view details and edit any user profile
+- `/admin/rbac` — checkbox-based role assignment per user
+- `/admin/account-status` — activate or deactivate any account
