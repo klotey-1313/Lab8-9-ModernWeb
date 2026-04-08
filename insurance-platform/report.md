@@ -415,12 +415,14 @@ The Sidebar reads role names from `AuthContext` and renders only the navigation 
 <img width="1085" height="708" alt="image" src="https://github.com/user-attachments/assets/9c11c393-bc7e-4976-a78e-eed3beff5b3f" />
 
 2. Valid login returns JWT
-   
+   <img width="1225" height="1060" alt="image" src="https://github.com/user-attachments/assets/59815358-aaad-4c1c-99c0-4b611f8a4c04" />
+
 3. Invalid login is rejected
+   <img width="1223" height="673" alt="image" src="https://github.com/user-attachments/assets/6672ee64-a900-4201-868d-83a5ac61591e" />
 
-4. Expired or invalid token is rejected
+5. Expired or invalid token is rejected
 
-5. Customer can view own profile
+6. Customer can view own profile
 customer cannot view another customer profile
 admin can list all users
 admin can assign a role to a user
