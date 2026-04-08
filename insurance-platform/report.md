@@ -411,8 +411,6 @@ The Sidebar reads role names from `AuthContext` and renders only the navigation 
 
 ## 12. Screenshots
 
-> **Replace the placeholders below with actual screenshots before final submission.**
-
 1. **Backend startup** — Terminal showing `Secure backend API running on https://localhost:5001`
 2. **HTTPS in browser** — Address bar with `https://localhost:5001/api/...` or padlock icon
 3. **Login page** — `/login` with credentials form
