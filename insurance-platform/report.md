@@ -410,30 +410,34 @@ The Sidebar reads role names from `AuthContext` and renders only the navigation 
 ---
 
 ## 12. Screenshots
+1. Backend starts successfully over HTTPS
+   <img width="708" height="275" alt="image" src="https://github.com/user-attachments/assets/dfe11d14-ae72-4492-b776-59df59c913e8" />
+<img width="1085" height="708" alt="image" src="https://github.com/user-attachments/assets/9c11c393-bc7e-4976-a78e-eed3beff5b3f" />
 
-1. **Backend startup** — Terminal showing `Secure backend API running on https://localhost:5001`
-<img width="708" height="275" alt="image" src="https://github.com/user-attachments/assets/dfe11d14-ae72-4492-b776-59df59c913e8" />
+2. Valid login returns JWT
+   
+3. Invalid login is rejected
+
+4. Expired or invalid token is rejected
+
+5. Customer can view own profile
+customer cannot view another customer profile
+admin can list all users
+admin can assign a role to a user
+non-admin cannot assign roles
+customer can view only own policies
+agent can create policy
+underwriter can approve amendment
+non-underwriter cannot approve amendment
+customer can submit claim
+claims adjuster can approve or reject claim
+non-adjuster cannot approve claim
+deactivated account cannot continue normal access if such logic is implemented
+frontend blocks or redirects unauthorized page access
 
 
-3. **HTTPS in browser** — Address bar with `https://localhost:5001/api/...` or padlock icon
-4. **Login page** — `/login` with credentials form
-5. **Successful login response** — DevTools Network tab showing JWT in response body
-6. **Customer dashboard** — `/dashboard` showing role-appropriate content
-7. **My Policies** — `/policies` showing only the logged-in customer's policies
-8. **Amendment request form** — `/amendments/create` with form fields
-9. **Amendment review queue** — `/amendments/review` logged in as underwriter
-10. **Claim submission form** — `/claims/create`
-11. **Claims review queue** — `/claims/review` logged in as adjuster
-12. **Admin user list** — `/admin/users` showing all 7 seed users
-13. **Admin user detail / edit** — `/admin/users/[id]` with view and edit toggle
-14. **RBAC role assignment** — `/admin/rbac` checkbox grid
-15. **Account status management** — `/admin/account-status` with activate/deactivate buttons
-16. **Customer support view** — `/support` logged in as csrep1
-17. **Compliance overview** — `/compliance` logged in as compliance1
-18. **Unauthorized screen** — `/unauthorized` when a customer navigates to an admin page
-19. **DevTools request header** — `Authorization: Bearer <token>` on a protected request
-20. **401 response** — Postman/DevTools showing 401 for missing token
-21. **403 response** — Postman/DevTools showing 403 for insufficient role
+
+
 
 ---
 
