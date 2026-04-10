@@ -420,22 +420,48 @@ The Sidebar reads role names from `AuthContext` and renders only the navigation 
 3. Invalid login is rejected
    <img width="1223" height="673" alt="image" src="https://github.com/user-attachments/assets/6672ee64-a900-4201-868d-83a5ac61591e" />
 
-5. Expired or invalid token is rejected
+4. Expired or invalid token is rejected
+<img width="1216" height="734" alt="image" src="https://github.com/user-attachments/assets/23c0d22e-1262-48a0-8449-82394c1a36d7" />
 
-6. Customer can view own profile
-customer cannot view another customer profile
-admin can list all users
-admin can assign a role to a user
-non-admin cannot assign roles
-customer can view only own policies
-agent can create policy
-underwriter can approve amendment
-non-underwriter cannot approve amendment
-customer can submit claim
-claims adjuster can approve or reject claim
-non-adjuster cannot approve claim
-deactivated account cannot continue normal access if such logic is implemented
-frontend blocks or redirects unauthorized page access
+5. Customer can view own profile
+   
+<img width="1918" height="1082" alt="image" src="https://github.com/user-attachments/assets/d1b85d0c-a02d-4067-b83a-09760af3958e" />
+
+<img width="1373" height="999" alt="image" src="https://github.com/user-attachments/assets/eb4dbbaa-d128-445f-88e8-3de6d83936be" />
+
+
+6. Customer cannot view another customer profile
+<img width="1283" height="466" alt="image" src="https://github.com/user-attachments/assets/b30432c4-0cfb-4ad2-9749-fe3bd8d801a1" />
+
+<img width="1336" height="685" alt="image" src="https://github.com/user-attachments/assets/f8da733b-2bc1-4752-b259-0411337ad709" />
+
+7. Admin can list all users
+<img width="1382" height="1016" alt="image" src="https://github.com/user-attachments/assets/45d6748b-4d66-45b2-af8b-59813ade7aa1" />
+
+<img width="1917" height="1082" alt="image" src="https://github.com/user-attachments/assets/71658752-76b0-4d3a-8610-4f431f38e290" />
+
+8. Admin can assign a role to a user
+<img width="1570" height="997" alt="image" src="https://github.com/user-attachments/assets/ce80d2b0-cc1a-4f45-953e-40824f5df4a8" />
+
+<img width="1919" height="1083" alt="image" src="https://github.com/user-attachments/assets/a9cd288a-f48d-49bb-9603-15d672f09dce" />
+
+<img width="1919" height="1018" alt="image" src="https://github.com/user-attachments/assets/38b36ca1-9b85-4bec-bd11-c89a8b11e71b" />
+
+9. Non-admin cannot assign roles
+<img width="1572" height="661" alt="image" src="https://github.com/user-attachments/assets/78ac282a-7d31-4981-b992-05f3aa92a110" />
+
+<img width="1919" height="1072" alt="image" src="https://github.com/user-attachments/assets/1015d26e-fa06-4d33-a58c-ffaa744b6f2e" />
+
+10. Customer can view only own policies
+
+11. Agent can create policy
+12. Underwriter can approve amendment
+13. Non-underwriter cannot approve amendment
+14. Customer can submit claim
+15. Claims adjuster can approve or reject claim
+16. Non-adjuster cannot approve claim
+17. Deactivated account cannot continue normal access if such logic is implemented
+18. Frontend blocks or redirects unauthorized page access
 
 
 
