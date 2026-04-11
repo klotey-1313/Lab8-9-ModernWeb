@@ -414,14 +414,18 @@ The Sidebar reads role names from `AuthContext` and renders only the navigation 
    <img width="708" height="275" alt="image" src="https://github.com/user-attachments/assets/dfe11d14-ae72-4492-b776-59df59c913e8" />
 <img width="1085" height="708" alt="image" src="https://github.com/user-attachments/assets/9c11c393-bc7e-4976-a78e-eed3beff5b3f" />
 
+
 2. Valid login returns JWT
    <img width="1225" height="1060" alt="image" src="https://github.com/user-attachments/assets/59815358-aaad-4c1c-99c0-4b611f8a4c04" />
+
 
 3. Invalid login is rejected
    <img width="1223" height="673" alt="image" src="https://github.com/user-attachments/assets/6672ee64-a900-4201-868d-83a5ac61591e" />
 
+
 4. Expired or invalid token is rejected
 <img width="1216" height="734" alt="image" src="https://github.com/user-attachments/assets/23c0d22e-1262-48a0-8449-82394c1a36d7" />
+
 
 5. Customer can view own profile
    
@@ -435,10 +439,12 @@ The Sidebar reads role names from `AuthContext` and renders only the navigation 
 
 <img width="1336" height="685" alt="image" src="https://github.com/user-attachments/assets/f8da733b-2bc1-4752-b259-0411337ad709" />
 
+
 7. Admin can list all users
 <img width="1382" height="1016" alt="image" src="https://github.com/user-attachments/assets/45d6748b-4d66-45b2-af8b-59813ade7aa1" />
 
 <img width="1917" height="1082" alt="image" src="https://github.com/user-attachments/assets/71658752-76b0-4d3a-8610-4f431f38e290" />
+
 
 8. Admin can assign a role to a user
 <img width="1570" height="997" alt="image" src="https://github.com/user-attachments/assets/ce80d2b0-cc1a-4f45-953e-40824f5df4a8" />
@@ -447,20 +453,41 @@ The Sidebar reads role names from `AuthContext` and renders only the navigation 
 
 <img width="1919" height="1018" alt="image" src="https://github.com/user-attachments/assets/38b36ca1-9b85-4bec-bd11-c89a8b11e71b" />
 
+
 9. Non-admin cannot assign roles
 <img width="1572" height="661" alt="image" src="https://github.com/user-attachments/assets/78ac282a-7d31-4981-b992-05f3aa92a110" />
 
 <img width="1919" height="1072" alt="image" src="https://github.com/user-attachments/assets/1015d26e-fa06-4d33-a58c-ffaa744b6f2e" />
 
+
 10. Customer can view only own policies
+<img width="1575" height="1058" alt="image" src="https://github.com/user-attachments/assets/1796d7d8-3ea3-4b49-bcb4-8d1b091d0a0d" />
+
+<img width="1919" height="1093" alt="image" src="https://github.com/user-attachments/assets/1e337604-c050-444f-914e-a72d3ceee825" />
+
 
 11. Agent can create policy
+<img width="1919" height="1083" alt="image" src="https://github.com/user-attachments/assets/7fe89edc-62a4-426f-8721-46da99a05b3f" />
+
+
 12. Underwriter can approve amendment
+<img width="1919" height="1079" alt="image" src="https://github.com/user-attachments/assets/d0f2fe87-6985-4e92-8528-c02238679560" />
+
+
 13. Non-underwriter cannot approve amendment
+<img width="1919" height="1087" alt="image" src="https://github.com/user-attachments/assets/af862090-cfe6-4ecb-a625-cb852ea5713b" />
+
+
 14. Customer can submit claim
+<img width="1918" height="1084" alt="image" src="https://github.com/user-attachments/assets/ec9b75f8-b8ea-44aa-b1d3-722ca2e359bd" />
+
+
 15. Claims adjuster can approve or reject claim
+
 16. Non-adjuster cannot approve claim
+
 17. Deactivated account cannot continue normal access if such logic is implemented
+
 18. Frontend blocks or redirects unauthorized page access
 
 
