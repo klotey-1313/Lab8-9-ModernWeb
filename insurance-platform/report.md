@@ -491,11 +491,17 @@ The Sidebar reads role names from `AuthContext` and renders only the navigation 
 
 
 17. Deactivated account cannot continue normal access if such logic is implemented
+<img width="1569" height="931" alt="image" src="https://github.com/user-attachments/assets/da33f04e-8e9c-4ff1-9f44-669461e977a4" />
+
+<img width="1919" height="1077" alt="image" src="https://github.com/user-attachments/assets/d6f606e2-a414-4e36-b9e2-cef78f4494f5" />
+
+<img width="1919" height="1081" alt="image" src="https://github.com/user-attachments/assets/17725026-5ed8-476c-9bb6-8a2e3b69bbeb" />
+
 
 18. Frontend blocks or redirects unauthorized page access
+<img width="1919" height="1094" alt="image" src="https://github.com/user-attachments/assets/c7bb6593-f589-4cee-8d10-79f98484c471" />
 
-
-
+<img width="1919" height="1087" alt="image" src="https://github.com/user-attachments/assets/7057c38f-8d77-4f7b-bce3-7466c1ca5bc2" />
 
 
 ---
