@@ -483,8 +483,12 @@ The Sidebar reads role names from `AuthContext` and renders only the navigation 
 
 
 15. Claims adjuster can approve or reject claim
+<img width="1919" height="1066" alt="image" src="https://github.com/user-attachments/assets/3773cba5-6e8d-47ca-b02f-187c8a43a9d4" />
+
 
 16. Non-adjuster cannot approve claim
+<img width="1919" height="1080" alt="image" src="https://github.com/user-attachments/assets/11041331-62b5-4a7e-a4d8-d00ac3177043" />
+
 
 17. Deactivated account cannot continue normal access if such logic is implemented
 
