@@ -20,7 +20,7 @@
 10. [Security Best Practices](#10-security-best-practices)
 11. [Testing Results](#11-testing-results)
 12. [Screenshots](#12-screenshots)
-13. [Conclusion](#13-conclusion)
+
 
 ---
 
@@ -504,35 +504,3 @@ The Sidebar reads role names from `AuthContext` and renders only the navigation 
 <img width="1919" height="1087" alt="image" src="https://github.com/user-attachments/assets/7057c38f-8d77-4f7b-bce3-7466c1ca5bc2" />
 
 
----
-
-## 13. Conclusion
-
-This lab successfully implements all specified requirements for a secure, full-stack insurance platform:
-
-| Criterion | Status |
-|---|---|
-| HTTPS configuration | ✅ `https.createServer` with PFX; no HTTP fallback |
-| JWT with correct claims | ✅ `userId`, `username`, `roles`, `iat`, `exp` |
-| JWT expiry | ✅ Configurable, default 2 hours |
-| Password hashing | ✅ bcrypt with 12 salt rounds |
-| No secrets in code | ✅ All secrets in `.env` files |
-| Protected APIs | ✅ `authenticate` middleware on all non-public routes |
-| Role-based checks | ✅ `authorizeRoles()` middleware on all restricted routes |
-| Ownership enforcement | ✅ `requirePolicyOwnership` on creation routes |
-| Comprehensive profile | ✅ 30+ fields; two-layer schema; self-update whitelist |
-| All 7 user roles | ✅ Defined, seeded, and enforced |
-| RBAC by admin | ✅ Assign and remove roles through UI; ADMIN-only |
-| Policy workflows | ✅ Create, list, view — with role filtering |
-| Amendment workflow | ✅ Submit → Underwriter review → decision |
-| Reduction workflow | ✅ Submit → Underwriter review → decision |
-| Claims workflow | ✅ Submit → Adjuster review → decision |
-| Customer portal | ✅ 12 screens covering all customer operations |
-| Internal portal | ✅ Policy mgmt, amendment/reduction/claim review, support, compliance |
-| Admin portal | ✅ User list, create, edit, RBAC, account status |
-| Frontend route guards | ✅ `ProtectedRoute` + `RoleGuard` on all protected pages |
-| Input validation | ✅ `express-validator` on all mutation endpoints |
-| Centralized error handling | ✅ `errorMiddleware` with safe messages |
-| Security headers | ✅ `helmet()` |
-| CORS restriction | ✅ `FRONTEND_URL`-only origin |
-| Response field filtering | ✅ `stripSensitiveUserFields()` |
